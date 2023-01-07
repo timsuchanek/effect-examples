@@ -7,22 +7,28 @@ export interface Name {
 
 export const Name: Context.Tag<Name> = Context.Tag<Name>();
 
-export const program: Effect.Effect<Name, never, void> = Effect.gen(function* ($) {
+export const program = Effect.gen(function* ($) {
   const { getName } = yield* $(Effect.service(Name));
 
   yield* $(Effect.log(`Hello ${yield* $(getName)}`));
-  yield* $(Effect.die("Error"));
+  yield* $(Effect.fail("Error"));
 });
 
-export const NameLive: Layer.Layer<never, never, Name> = Layer.fromEffect(Name)(
+const program2 = pipe(
+  Effect.log("hello"),
+  Effect.flatMap((_) => Effect.succeed("world")),
+  Effect.flatMap((previousResult) => Effect.fail(previousResult + " error"))
+);
+
+export const NameLive = Layer.fromEffect(Name)(
   Effect.sync(() => ({
     getName: Effect.succeed("Mike"),
   }))
 );
 
 pipe(
-  program,
-  Effect.provideLayer(NameLive),
+  program2,
+  // Effect.provideLayer(NameLive),
   Effect.tapErrorCause(Effect.logErrorCause),
   Effect.unsafeFork
 );
